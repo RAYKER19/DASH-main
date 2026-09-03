@@ -7,11 +7,13 @@ export function useClientes() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'all' | 'Activo' | 'Pendiente' | 'Atención'>('all');
 
-  useEffect(() => {
+  const reload = () => {
     let active = true;
     fetchClients().then((data) => { if (active) setRecords(data); }).catch(() => { if (active) setRecords([]); });
     return () => { active = false; };
-  }, []);
+  };
+
+  useEffect(() => reload(), []);
 
   const filteredClientes = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -34,5 +36,6 @@ export function useClientes() {
     setQuery,
     status,
     setStatus,
+    reload,
   };
 }

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_current_user
 from app.database.connection import get_db
-from app.database.models import ClienteDB
+from app.database.models import AuditoriaDB, ClienteDB
 from app.schemas.clientes import ClienteCreate, ClienteResponse, ClienteUpdate
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
@@ -16,6 +16,8 @@ async def crear_cliente(cliente: ClienteCreate, db: AsyncSession = Depends(get_d
 	db.add(nuevo)
 	await db.commit()
 	await db.refresh(nuevo)
+	db.add(AuditoriaDB(accion="CREAR", tabla="clientes", registro_id=nuevo.id, detalles=cliente.model_dump()))
+	await db.commit()
 	return nuevo
 
 
@@ -42,6 +44,8 @@ async def actualizar_cliente(cliente_id: int, datos: ClienteUpdate, db: AsyncSes
 		setattr(cliente, campo, valor)
 	await db.commit()
 	await db.refresh(cliente)
+	db.add(AuditoriaDB(accion="EDITAR", tabla="clientes", registro_id=cliente.id, detalles=datos.model_dump(exclude_unset=True)))
+	await db.commit()
 	return cliente
 
 
@@ -50,5 +54,7 @@ async def eliminar_cliente(cliente_id: int, db: AsyncSession = Depends(get_db), 
 	cliente = await db.get(ClienteDB, cliente_id)
 	if cliente is None:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
+	detalles = {"nombre": cliente.nombre, "email": cliente.email, "empresa": cliente.empresa}
+	db.add(AuditoriaDB(accion="ELIMINAR", tabla="clientes", registro_id=cliente.id, detalles=detalles))
 	await db.delete(cliente)
 	await db.commit()

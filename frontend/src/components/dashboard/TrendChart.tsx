@@ -1,8 +1,9 @@
 interface TrendChartProps {
   values: number[];
+  onDetail?: () => void;
 }
 
-export function TrendChart({ values = [] }: TrendChartProps) {
+export function TrendChart({ values = [], onDetail }: TrendChartProps) {
   const maximum = Math.max(...values, 1);
   const bars = values.map((value) => Math.max(4, value / maximum * 100));
 
@@ -10,7 +11,7 @@ export function TrendChart({ values = [] }: TrendChartProps) {
     <div className="panel large-panel">
       <div className="panel-header">
         <h3>TIEMPOS DE ATENCIÓN</h3>
-        <button type="button" className="mini-btn">Ver detalle</button>
+        <button type="button" className="mini-btn" onClick={onDetail}>Ver detalle</button>
       </div>
 
       <div className="chart-box">

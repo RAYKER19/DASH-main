@@ -1,5 +1,8 @@
+import { useEffect, useState, type FormEvent } from 'react';
 import { AppLayout } from '../layouts/AppLayout';
 import { useClientes } from '../hooks/useClientes';
+import { createClient, deleteClient, fetchAudit, updateClient } from '../services/backend';
+import { ExportMenu, exportRows, type ExportFormat } from '../utils/exports';
 import type { ViewKey } from '../types';
 
 interface PageProps {
@@ -7,92 +10,47 @@ interface PageProps {
   onSelectView?: (view: ViewKey) => void;
 }
 
+type ClientForm = { nombre: string; email: string; telefono: string; empresa: string };
+type AuditEntry = { id: number; accion: string; registro_id?: number; detalles?: Record<string, string | number | null>; created_at: string };
+
+const emptyForm: ClientForm = { nombre: '', email: '', telefono: '', empresa: '' };
+
 export default function ClientesPage({ activeView = 'clientes', onSelectView = () => undefined }: PageProps) {
-  const { clientes } = useClientes();
-  return (
-    <AppLayout activeView={activeView} onSelectView={onSelectView}>
-      <header className="header-bar">
-        <div>
-          <div className="eyebrow">Gestión</div>
-          <h1>Clientes</h1>
-        </div>
-        <div className="header-actions">
-          <button type="button" className="chip">Filtrar</button>
-          <button type="button" className="chip highlight">Nuevo cliente</button>
-        </div>
-      </header>
+  const { clientes, query, setQuery, status, setStatus, reload } = useClientes();
+  const [tab, setTab] = useState<'lista' | 'historial'>('lista');
+  const [form, setForm] = useState<ClientForm>(emptyForm);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [history, setHistory] = useState<AuditEntry[]>([]);
+  const [message, setMessage] = useState('');
 
-      <div className="stats-grid">
-        <article className="stat-card">
-          <div className="card-icon positive">C</div>
-          <div className="card-text">
-            <div className="card-label">Clientes activos</div>
-            <div className="card-value">245</div>
-            <div className="card-detail-row"><span className="card-detail">+18 este mes</span></div>
-          </div>
-        </article>
+  const loadHistory = () => fetchAudit().then((items) => setHistory(items.filter((item) => item.tabla === 'clientes'))).catch(() => setHistory([]));
+  useEffect(() => { void loadHistory(); }, []);
 
-        <article className="stat-card">
-          <div className="card-icon neutral">S</div>
-          <div className="card-text">
-            <div className="card-label">Satisfacción</div>
-            <div className="card-value">89.6%</div>
-            <div className="card-detail-row"><span className="card-detail">+4.2 pts</span></div>
-          </div>
-        </article>
+  const save = (event: FormEvent) => {
+    event.preventDefault();
+    if (!form.nombre.trim()) return;
+    const operation = editingId === null ? createClient(form) : updateClient(editingId, form);
+    void operation.then(() => { setMessage(editingId === null ? 'Cliente creado.' : 'Cliente actualizado.'); setForm(emptyForm); setEditingId(null); reload(); return loadHistory(); }).catch(() => setMessage('No se pudo guardar el cliente.'));
+  };
 
-        <article className="stat-card">
-          <div className="card-icon warning">R</div>
-          <div className="card-text">
-            <div className="card-label">Riesgo alto</div>
-            <div className="card-value">12</div>
-            <div className="card-detail-row"><span className="card-detail">requieren revisión</span></div>
-          </div>
-        </article>
-      </div>
+  const remove = (id: number) => {
+    if (!window.confirm('¿Eliminar este cliente? Quedará registrado en el historial.')) return;
+    void deleteClient(id).then(() => { setMessage('Cliente eliminado y archivado en el historial.'); reload(); return loadHistory(); }).catch(() => setMessage('No se pudo eliminar el cliente.'));
+  };
 
-      <div className="content-stack">
-        <section className="panel table-panel">
-          <div className="panel-header">
-            <h3>LISTA DE CLIENTES</h3>
-            <button type="button" className="mini-btn">Exportar</button>
-          </div>
+  const exportar = (format: ExportFormat) => exportRows([['Nombre', 'Empresa', 'Email', 'Estado'], ...clientes.map((item) => [item.name, item.company, item.email, item.status])], format, 'clientes');
 
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>Empresa</th>
-                <th>Segmento</th>
-                <th>Responsable</th>
-                <th>Estado</th>
-                <th>Permanencia</th>
-                <th>Satisfacción</th>
-                <th>Riesgo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clientes.map((client) => (
-                <tr key={client.id}>
-                  <td>
-                    <div className="client-name-cell">
-                      <span>{client.name}</span>
-                      {client.isNew && <span className="new-tag">Nuevo</span>}
-                    </div>
-                  </td>
-                  <td>{client.company}</td>
-                  <td>{client.segment}</td>
-                  <td>{client.owner}</td>
-                  <td><span className={`status-pill ${client.status.toLowerCase().replace(/\s+/g, '-')}`}>{client.status}</span></td>
-                  <td>{client.tenure}</td>
-                  <td>{client.satisfaction}%</td>
-                  <td><span className={`risk-tag ${client.risk.toLowerCase()}`}>{client.risk}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      </div>
-    </AppLayout>
-  );
+  return <AppLayout activeView={activeView} onSelectView={onSelectView}>
+    <header className="header-bar"><div><div className="eyebrow">Gestión</div><h1>Clientes</h1></div><div className="header-actions"><input className="chip" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar cliente" /><select className="chip" value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">Todos</option><option value="Activo">Activos</option><option value="Pendiente">Pendientes</option></select></div></header>
+
+    <nav className="section-tabs" aria-label="Secciones de clientes"><button type="button" className={tab === 'lista' ? 'active' : ''} onClick={() => setTab('lista')}>Lista de clientes</button><button type="button" className={tab === 'historial' ? 'active' : ''} onClick={() => { setTab('historial'); void loadHistory(); }}>Historial y eliminados</button></nav>
+
+    {tab === 'lista' && <>
+      <section className="stats-grid"><article className="stat-card"><div className="card-icon positive">C</div><div className="card-text"><div className="card-label">Clientes activos</div><div className="card-value">{clientes.filter((item) => item.status === 'Activo').length}</div><div className="card-detail">De Supabase</div></div></article><article className="stat-card"><div className="card-icon neutral">S</div><div className="card-text"><div className="card-label">Satisfacción</div><div className="card-value">{clientes.length ? `${Math.round(clientes.reduce((total, item) => total + item.satisfaction, 0) / clientes.length)}%` : '0%'}</div><div className="card-detail">Calculada de los registros</div></div></article><article className="stat-card"><div className="card-icon warning">R</div><div className="card-text"><div className="card-label">Riesgo alto</div><div className="card-value">{clientes.filter((item) => item.risk === 'Alto').length}</div><div className="card-detail">Registros actuales</div></div></article></section>
+      <form className="panel config-form" onSubmit={save}><h3>{editingId === null ? 'NUEVO CLIENTE' : `EDITAR CLIENTE #${editingId}`}</h3><input required placeholder="Nombre" value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} /><input type="email" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /><input placeholder="Teléfono" value={form.telefono} onChange={(event) => setForm({ ...form, telefono: event.target.value })} /><input placeholder="Empresa" value={form.empresa} onChange={(event) => setForm({ ...form, empresa: event.target.value })} /><button type="submit" className="mini-btn">{editingId === null ? 'Guardar cliente' : 'Guardar cambios'}</button>{editingId !== null && <button type="button" className="mini-btn" onClick={() => { setEditingId(null); setForm(emptyForm); }}>Cancelar</button>}{message && <span className="card-detail">{message}</span>}</form>
+      <section className="panel table-panel"><div className="panel-header"><h3>LISTA DE CLIENTES</h3><ExportMenu onExport={exportar} /></div><table className="data-table"><thead><tr><th>Cliente</th><th>Empresa</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{clientes.map((client) => <tr key={client.id}><td>{client.name}</td><td>{client.company}</td><td>{client.email || 'Sin email'}</td><td><span className={`status-pill ${client.status.toLowerCase()}`}>{client.status}</span></td><td><button type="button" className="mini-btn" onClick={() => { setEditingId(client.id); setForm({ nombre: client.name, email: client.email, telefono: '', empresa: client.company }); }}>Editar</button><button type="button" className="mini-btn danger-btn" onClick={() => remove(client.id)}>Eliminar</button></td></tr>)}</tbody></table>{clientes.length === 0 && <div className="empty-state"><h4>No hay clientes registrados</h4><p>Los nuevos registros de Supabase aparecerán aquí.</p></div>}</section>
+    </>}
+
+    {tab === 'historial' && <section className="panel table-panel"><div className="panel-header"><h3>HISTORIAL DE REGISTROS Y ELIMINADOS</h3><button type="button" className="mini-btn" onClick={() => void loadHistory()}>Actualizar</button></div><table className="data-table"><thead><tr><th>Acción</th><th>ID cliente</th><th>Datos registrados</th><th>Fecha</th></tr></thead><tbody>{history.map((entry) => <tr key={entry.id}><td><span className={`status-pill ${entry.accion.toLowerCase()}`}>{entry.accion}</span></td><td>{entry.registro_id ?? 'N/D'}</td><td>{entry.detalles ? Object.entries(entry.detalles).map(([key, value]) => `${key}: ${value ?? ''}`).join(' · ') : 'Sin detalles'}</td><td>{new Date(entry.created_at).toLocaleString('es-ES')}</td></tr>)}</tbody></table>{history.length === 0 && <div className="empty-state"><h4>No hay movimientos registrados</h4><p>Las próximas altas, ediciones y eliminaciones quedarán aquí.</p></div>}</section>}
+  </AppLayout>;
 }

@@ -9,7 +9,7 @@ export function ActivityPanel({ items }: ActivityPanelProps) {
     <div className="panel activity-panel">
       <div className="panel-header">
         <h3>ACTIVIDAD RECIENTE</h3>
-        <button type="button" className="mini-btn">Ver todo</button>
+        <button type="button" className="mini-btn" onClick={() => window.location.reload()}>Actualizar</button>
       </div>
 
       <div className="activity-list">

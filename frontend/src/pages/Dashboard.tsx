@@ -8,6 +8,7 @@ import { WordCloudPanel } from '../components/dashboard/WordCloudPanel';
 import { AppLayout } from '../layouts/AppLayout';
 import { useDashboardData } from '../hooks/useDashboardData';
 import type { ViewKey } from '../types';
+import { ExportMenu, exportRows, type ExportFormat } from '../utils/exports';
 
 interface DashboardProps {
   activeView?: ViewKey;
@@ -16,16 +17,19 @@ interface DashboardProps {
 
 export default function DashboardPage({ activeView = 'dashboard', onSelectView = () => undefined }: DashboardProps) {
   const { kpis: overview, categories, activity, metrics, words, trend, error } = useDashboardData();
+  const refresh = () => window.location.reload();
+  const exportar = (format: ExportFormat) => exportRows([['Indicador', 'Valor'], ...overview.map((card) => [card.label, card.value])], format, 'dashboard');
 
   return (
     <AppLayout activeView={activeView} onSelectView={onSelectView}>
-      <HeaderPanel />
+      <HeaderPanel onRefresh={refresh} onExport={() => undefined} />
+      <div className="dashboard-export"><ExportMenu onExport={exportar} /></div>
       {error && <div className="panel error-panel">{error}</div>}
       <OverviewCards cards={overview} />
 
       <section className="two-col-grid">
-    <TrendChart values={trend} />
-    <CategoryPanel items={categories} />
+    <TrendChart values={trend} onDetail={() => onSelectView('metricas')} />
+    <CategoryPanel items={categories} onRefresh={refresh} />
       </section>
 
       <section className="bottom-grid">

@@ -12,7 +12,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 type ApiClient = { id: number; nombre: string; email?: string; empresa?: string; activo: boolean };
-type ApiComment = { id: number; cliente_id?: number; contenido: string; canal: string; categoria?: string; procesado: boolean };
+type ApiComment = { id: number; cliente_id?: number; contenido: string; canal: string; categoria?: string; procesado: boolean; estado: string; fecha: string };
 
 const categoryToUi = (category?: string): CommentRecord['category'] => {
   const values: Record<string, CommentRecord['category']> = {
@@ -30,14 +30,35 @@ export async function fetchClients(): Promise<ClientRecord[]> {
   }));
 }
 
+export function createClient(payload: { nombre: string; email?: string; telefono?: string; empresa?: string }) {
+  return request('/clientes/', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function updateClient(id: number, payload: { nombre?: string; email?: string; telefono?: string; empresa?: string; activo?: boolean }) {
+  return request(`/clientes/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+}
+
+export function deleteClient(id: number) {
+  return request<void>(`/clientes/${id}`, { method: 'DELETE' });
+}
+
 export async function fetchComments(): Promise<CommentRecord[]> {
-  const comments = await request<ApiComment[]>('/comentarios/');
+  const [comments, clients] = await Promise.all([request<ApiComment[]>('/comentarios/'), request<ApiClient[]>('/clientes/')]);
+  const clientNames = new Map(clients.map((client) => [client.id, client.nombre]));
   return comments.map((comment) => ({
-    id: comment.id, client: comment.cliente_id ? `Cliente #${comment.cliente_id}` : 'Sin cliente',
+    id: comment.id, client: comment.cliente_id ? clientNames.get(comment.cliente_id) ?? `Cliente #${comment.cliente_id}` : 'Sin cliente',
     sentiment: comment.categoria === 'RECLAMO' ? 'Negativo' : comment.categoria === 'FELICITACION' ? 'Positivo' : 'Neutral',
     category: categoryToUi(comment.categoria), text: comment.contenido, responseTime: 'Pendiente', rating: 0,
-    source: comment.canal, priority: comment.categoria === 'RECLAMO' ? 'Alta' : 'Media',
+    source: comment.canal, priority: comment.categoria === 'RECLAMO' ? 'Alta' : 'Media', status: comment.estado, date: comment.fecha,
   }));
+}
+
+export function createComment(payload: { contenido: string; canal: string; cliente_id?: number }) {
+  return request('/comentarios/', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function createAttentionTime(payload: { cliente_id?: number; comentario_id?: number; tiempo_minutos: number; operador?: string }) {
+  return request('/tiempos-atencion/', { method: 'POST', body: JSON.stringify(payload) });
 }
 
 export function analyzeText(texto: string) {
@@ -46,6 +67,14 @@ export function analyzeText(texto: string) {
 
 export function calculateStatistics(valores: number[]) {
   return request('/scipy/estadisticas', { method: 'POST', body: JSON.stringify({ valores }) });
+}
+
+export function interpolate(x_puntos: number[], y_puntos: number[], x_nuevo: number[]) {
+  return request<{ x_nuevo: number[]; y_interpolado: number[] }>('/scipy/interpolacion', { method: 'POST', body: JSON.stringify({ x_puntos, y_puntos, x_nuevo }) });
+}
+
+export function optimizeScenario(nombre: string, recursos: Record<string, number>) {
+  return request('/scipy/optimizacion', { method: 'POST', body: JSON.stringify({ nombre, recursos }) });
 }
 
 export interface DashboardSummary {
@@ -66,6 +95,34 @@ export async function fetchAttentionTimes() {
 
 export async function fetchOptimizations() {
   return request<Array<{ id: number; nombre: string; descripcion?: string; estado: string; resultado?: { ahorro_porcentual?: number; roi?: number } }>>('/optimizaciones/');
+}
+
+export async function fetchUsers() {
+  return request<Array<{ id: number; nombre: string; rol: string; activo: boolean }>>('/usuarios/');
+}
+
+export async function fetchCategories() {
+  return request<Array<{ id: number; nombre: string; activo: boolean }>>('/categorias/');
+}
+
+export function createUser(payload: { nombre: string; email: string; password_hash: string; rol: string }) {
+  return request('/usuarios/', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function updateUser(id: number, payload: { activo: boolean }) {
+  return request(`/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+}
+
+export function createCategory(payload: { nombre: string; descripcion?: string }) {
+  return request('/categorias/', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function updateCategory(id: number, payload: { activo: boolean }) {
+  return request(`/categorias/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+}
+
+export async function fetchAudit() {
+  return request<Array<{ id: number; accion: string; tabla?: string; registro_id?: number; detalles?: Record<string, string | number | null>; ip?: string; created_at: string }>>('/auditoria/');
 }
 
 export function fetchDashboardSummary() {

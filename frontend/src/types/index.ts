@@ -66,6 +66,8 @@ export interface CommentRecord {
   rating: number;
   source: string;
   priority: 'Alta' | 'Media' | 'Baja';
+  status?: string;
+  date?: string;
 }
 
 export interface MetricSnapshot {

@@ -2,14 +2,15 @@ import type { CategoryMetric } from '../../types';
 
 interface CategoryPanelProps {
   items: CategoryMetric[];
+  onRefresh?: () => void;
 }
 
-export function CategoryPanel({ items }: CategoryPanelProps) {
+export function CategoryPanel({ items, onRefresh }: CategoryPanelProps) {
   return (
     <div className="panel small-panel">
       <div className="panel-header">
         <h3>CATEGORÍAS NLP</h3>
-        <button type="button" className="mini-btn">Actualizar</button>
+        <button type="button" className="mini-btn" onClick={onRefresh}>Actualizar</button>
       </div>
 
       <div className="category-list">

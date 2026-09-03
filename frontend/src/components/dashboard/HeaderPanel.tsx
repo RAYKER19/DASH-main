@@ -1,6 +1,11 @@
 import { SearchInput } from '../ui/SearchInput';
 
-export function HeaderPanel() {
+interface HeaderPanelProps {
+  onRefresh: () => void;
+  onExport: () => void;
+}
+
+export function HeaderPanel({ onRefresh, onExport }: HeaderPanelProps) {
   return (
     <div className="header-panel">
       <div>
@@ -9,8 +14,8 @@ export function HeaderPanel() {
       </div>
       <div className="header-actions">
         <SearchInput placeholder="Buscar cliente o comentario" />
-        <button type="button" className="chip">Últimos 30 días</button>
-        <button type="button" className="chip highlight">Exportar</button>
+        <button type="button" className="chip" onClick={onRefresh}>Actualizar</button>
+        <button type="button" className="chip highlight" onClick={onExport}>Exportar</button>
       </div>
     </div>
   );

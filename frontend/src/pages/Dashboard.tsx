@@ -22,7 +22,7 @@ export default function DashboardPage({ activeView = 'dashboard', onSelectView =
 
   return (
     <AppLayout activeView={activeView} onSelectView={onSelectView}>
-      <HeaderPanel onRefresh={refresh} onExport={() => undefined} />
+      <HeaderPanel onRefresh={refresh} />
       <div className="dashboard-export"><ExportMenu onExport={exportar} /></div>
       {error && <div className="panel error-panel">{error}</div>}
       <OverviewCards cards={overview} />

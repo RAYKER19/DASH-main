@@ -1,7 +1,5 @@
 import { AppLayout } from '../layouts/AppLayout';
 import { useMetrics } from '../hooks/useMetrics';
-import { calculateStatistics, createAttentionTime, interpolate } from '../services/backend';
-import { useState } from 'react';
 import type { ViewKey } from '../types';
 import { ExportMenu, exportRows, type ExportFormat } from '../utils/exports';
 
@@ -11,12 +9,7 @@ interface PageProps {
 }
 
 export default function MetricasPage({ activeView = 'metricas', onSelectView = () => undefined }: PageProps) {
-  const { snapshots } = useMetrics();
-  const [values, setValues] = useState('');
-  const [result, setResult] = useState('');
-  const [points, setPoints] = useState('');
-  const [interpolated, setInterpolated] = useState('');
-  const [attentionTime, setAttentionTime] = useState('');
+  const { snapshots, summary, times } = useMetrics();
   const exportar = (format: ExportFormat) => exportRows([['Métrica', 'Valor', 'Descripción'], ...snapshots.map((item) => [item.label, item.value, item.description])], format, 'metricas');
   return (
     <AppLayout activeView={activeView} onSelectView={onSelectView}>
@@ -27,18 +20,10 @@ export default function MetricasPage({ activeView = 'metricas', onSelectView = (
         </div>
       </header>
       <div className="dashboard-export"><ExportMenu onExport={exportar} /></div>
-      <section className="panel scientific-tools">
-        <div className="panel-header"><h3>HERRAMIENTAS SCIPY</h3></div>
-        <div className="config-form">
-          <input value={attentionTime} onChange={(event) => setAttentionTime(event.target.value)} placeholder="Nuevo tiempo en minutos" />
-          <button type="button" className="mini-btn" onClick={() => void createAttentionTime({ tiempo_minutos: Number(attentionTime) }).then(() => setAttentionTime(''))}>Guardar tiempo</button>
-          <input value={values} onChange={(event) => setValues(event.target.value)} placeholder="Tiempos: 12,15,18,20" />
-          <button type="button" className="mini-btn" onClick={() => void calculateStatistics(values.split(',').map(Number).filter(Number.isFinite)).then((data) => setResult(JSON.stringify(data))).catch(() => setResult('Introduce valores numéricos válidos'))}>Calcular estadísticas</button>
-          <input value={points} onChange={(event) => setPoints(event.target.value)} placeholder="Interpolación x,y,x nuevo: 0:10;1:20;0.5" />
-          <button type="button" className="mini-btn" onClick={() => { const [first, second, target] = points.split(';').map((part) => part.split(',').map(Number)); if (!first || !second || !target) return; void interpolate(first, second, target).then((data) => setInterpolated(JSON.stringify(data))).catch(() => setInterpolated('Puntos inválidos')); }}>Interpolar</button>
-        </div>
-        {result && <pre className="result-box">{result}</pre>}
-        {interpolated && <pre className="result-box">{interpolated}</pre>}
+      <section className="panel analytics-panel">
+        <div className="panel-header"><div><h3>ANÁLISIS SCIPY</h3><p className="panel-subtitle">Indicadores calculados con los tiempos registrados en Supabase</p></div></div>
+        <div className="scientific-chart"><div className="scientific-bars">{times.map((value, index) => <div className="scientific-bar" key={`${value}-${index}`} title={`${value} minutos`} style={{ height: `${Math.max(5, value / Math.max(...times, 1) * 100)}%` }}><span>{value}</span></div>)}</div></div>
+        <div className="bars-stack metric-bars">{summary.map((metric) => <div className="bar-track" key={metric.label}><span>{metric.label}</span><div className="track"><i style={{ width: `${metric.value}%` }} /></div><strong>{metric.value}%</strong></div>)}</div>
       </section>
 
       <div className="stats-grid metric-grid">

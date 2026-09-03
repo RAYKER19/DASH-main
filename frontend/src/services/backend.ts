@@ -92,6 +92,7 @@ export interface DashboardSummary {
   palabras: WordCloudItem[];
   actividad: ActivityItem[];
   metricas: MetricBar[];
+  tablas: { usuarios: number; auditoria: number; optimizaciones: number; tiempos_atencion: number; analisis_nlp: number };
 }
 
 export async function fetchAttentionTimes() {

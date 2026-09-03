@@ -3,8 +3,6 @@ import { useNlpAnalysis } from '../hooks/useNlpAnalysis';
 import { useComentarios } from '../hooks/useComentarios';
 import type { ViewKey } from '../types';
 import { ExportMenu, exportRows, type ExportFormat } from '../utils/exports';
-import { analyzeText } from '../services/backend';
-import { useState } from 'react';
 
 interface PageProps {
   activeView?: ViewKey;
@@ -16,9 +14,11 @@ export default function AnalisisNLPPage({ activeView = 'analisisNLP', onSelectVi
   const { comentarios } = useComentarios();
 	const processedRate = comentarios.length ? Math.round(comentarios.filter((item) => item.category !== 'Consulta').length / comentarios.length * 100) : 0;
 	const dominantCategory = categories[0]?.value ?? 0;
+  const statusCounts = comentarios.reduce<Record<string, number>>((result, item) => { const key = item.status ?? 'sin estado'; result[key] = (result[key] ?? 0) + 1; return result; }, {});
+  const channelCounts = comentarios.reduce<Record<string, number>>((result, item) => { result[item.source] = (result[item.source] ?? 0) + 1; return result; }, {});
+  const responseTimes = comentarios.map((item) => Number.parseFloat(item.responseTime)).filter(Number.isFinite);
+  const averageResponse = responseTimes.length ? responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length : 0;
   const exportar = (format: ExportFormat) => exportRows([['Categoría', 'Distribución'], ...categories.map((item) => [item.name, `${item.value}%`])], format, 'analisis-nlp');
-  const [text, setText] = useState('');
-  const [analysis, setAnalysis] = useState('');
   return (
     <AppLayout activeView={activeView} onSelectView={onSelectView}>
       <header className="header-bar">
@@ -28,15 +28,10 @@ export default function AnalisisNLPPage({ activeView = 'analisisNLP', onSelectVi
         </div>
         <div className="header-actions">
           <button type="button" className="chip" onClick={() => window.location.reload()}>Actualizar</button>
-          <button type="button" className="chip highlight" onClick={() => window.location.reload()}>Ejecutar análisis</button>
+          <button type="button" className="chip highlight" onClick={() => window.location.reload()}>Actualizar análisis</button>
         </div>
       </header>
       <div className="dashboard-export"><ExportMenu onExport={exportar} /></div>
-      <section className="panel scientific-tools">
-        <div className="panel-header"><h3>ANALIZAR COMENTARIO</h3></div>
-        <div className="config-form"><textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Escribe un comentario para procesarlo con NLTK" rows={3} /><button type="button" className="mini-btn" onClick={() => void analyzeText(text).then((data) => setAnalysis(JSON.stringify(data))).catch(() => setAnalysis('Escribe un comentario válido'))}>Analizar con NLTK</button></div>
-        {analysis && <pre className="result-box">{analysis}</pre>}
-      </section>
 
       <div className="stats-grid">
         <article className="stat-card">
@@ -103,6 +98,13 @@ export default function AnalisisNLPPage({ activeView = 'analisisNLP', onSelectVi
           </div>
         </section>
       </div>
+
+      <section className="two-col-grid analytics-grid">
+        <section className="panel"><div className="panel-header"><h3>ESTADO DE LOS COMENTARIOS</h3></div><div className="analytics-bars">{Object.entries(statusCounts).map(([label, count]) => <div className="analytics-row" key={label}><span>{label}</span><div className="track"><i style={{ width: `${comentarios.length ? count / comentarios.length * 100 : 0}%` }} /></div><strong>{comentarios.length ? Math.round(count / comentarios.length * 100) : 0}%</strong></div>)}</div></section>
+        <section className="panel"><div className="panel-header"><h3>CANALES / TIPO</h3></div><div className="analytics-bars">{Object.entries(channelCounts).map(([label, count]) => <div className="analytics-row" key={label}><span>{label}</span><div className="track"><i style={{ width: `${comentarios.length ? count / comentarios.length * 100 : 0}%` }} /></div><strong>{count}</strong></div>)}</div></section>
+      </section>
+
+      <section className="panel analytics-summary"><div><span>Tiempo medio de comentarios</span><strong>{averageResponse.toFixed(2)} min</strong></div><div><span>Comentarios analizados</span><strong>{comentarios.filter((item) => item.status === 'resuelto' || item.status === 'procesado').length}</strong></div><div><span>Palabras detectadas</span><strong>{words.length}</strong></div></section>
 
       <section className="panel">
         <div className="panel-header">

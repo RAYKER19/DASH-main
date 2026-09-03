@@ -16,11 +16,13 @@ export function useComentarios() {
     search: '',
   });
 
-  useEffect(() => {
+  const reload = () => {
     let active = true;
     fetchComments().then((data) => { if (active) setRecords(data); }).catch(() => { if (active) setRecords([]); });
     return () => { active = false; };
-  }, []);
+  };
+
+  useEffect(() => reload(), []);
 
   const filteredComentarios = useMemo(() => {
     const term = filters.search.trim().toLowerCase();
@@ -44,6 +46,7 @@ export function useComentarios() {
     comentarios: filteredComentarios,
     filters,
     setFilters,
+    reload,
     counts: {
       total: records.length,
       positivos: records.filter((item) => item.sentiment === 'Positivo').length,

@@ -7,6 +7,12 @@ class ComentarioCreate(BaseModel):
     contenido: str
     canal: str = "web"
     cliente_id: int | None = None
+    estado: str = "pendiente"
+
+
+class ComentarioUpdate(BaseModel):
+    estado: str | None = None
+    canal: str | None = None
 
 
 class ComentarioResponse(ComentarioCreate):

@@ -4,7 +4,8 @@ import { CommentFilters } from '../components/comentarios/CommentFilters';
 import type { ViewKey } from '../types';
 import { ExportMenu, exportRows, type ExportFormat } from '../utils/exports';
 import { createComment } from '../services/backend';
-import { useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { fetchClients, createAttentionTime, updateComment } from '../services/backend';
 
 interface PageProps {
   activeView?: ViewKey;
@@ -12,9 +13,19 @@ interface PageProps {
 }
 
 export default function ComentariosPage({ activeView = 'comentarios', onSelectView = () => undefined }: PageProps) {
-  const { comentarios, filters, setFilters, counts } = useComentarios();
-  const [newComment, setNewComment] = useState({ contenido: '', canal: 'web' });
+  const { comentarios, filters, setFilters, counts, reload } = useComentarios();
+  const [clients, setClients] = useState<Array<{ id: number; nombre: string }>>([]);
+  const [newComment, setNewComment] = useState({ contenido: '', canal: 'web', cliente_id: '', estado: 'pendiente', tiempo_minutos: '', operador: '' });
   const [commentMessage, setCommentMessage] = useState('');
+  useEffect(() => { void fetchClients().then((items) => setClients(items.map((item) => ({ id: item.id, nombre: item.name })))).catch(() => setClients([])); }, []);
+  const saveComment = (event: FormEvent) => {
+    event.preventDefault();
+    if (!newComment.contenido.trim()) return;
+    void createComment({ contenido: newComment.contenido, canal: newComment.canal, cliente_id: newComment.cliente_id ? Number(newComment.cliente_id) : undefined, estado: newComment.estado }).then((created: { id: number }) => {
+      if (newComment.tiempo_minutos) return createAttentionTime({ cliente_id: newComment.cliente_id ? Number(newComment.cliente_id) : undefined, comentario_id: created.id, tiempo_minutos: Number(newComment.tiempo_minutos), operador: newComment.operador || undefined }).then(() => created);
+      return created;
+    }).then(() => { setCommentMessage('Comentario guardado, procesado por NLTK y registrado en Atención.'); setNewComment({ contenido: '', canal: 'web', cliente_id: '', estado: 'pendiente', tiempo_minutos: '', operador: '' }); return reload(); }).catch(() => setCommentMessage('No se pudo guardar el comentario o su tiempo.'));
+  };
   const exportar = (format: ExportFormat) => exportRows([['Cliente', 'Categoría', 'Sentimiento', 'Comentario'], ...comentarios.map((item) => [item.client, item.category, item.sentiment, item.text])], format, 'comentarios');
   return (
     <AppLayout activeView={activeView} onSelectView={onSelectView}>
@@ -44,7 +55,7 @@ export default function ComentariosPage({ activeView = 'comentarios', onSelectVi
           <div className="card-text">
             <div className="card-label">Neutral</div>
             <div className="card-value">{counts.total ? `${Math.round(counts.neutrales / counts.total * 100)}%` : '0%'}</div>
-            <div className="card-detail-row"><span className="card-detail">en revisión</span></div>
+            <div className="card-detail-row"><span className="card-detail">{counts.neutrales} casos</span></div>
           </div>
         </article>
 
@@ -59,10 +70,14 @@ export default function ComentariosPage({ activeView = 'comentarios', onSelectVi
       </div>
 
       <div className="content-stack">
-        <form className="panel config-form" onSubmit={(event) => { event.preventDefault(); if (!newComment.contenido) return; void createComment(newComment).then(() => { setCommentMessage('Comentario guardado y procesado por NLTK.'); setNewComment({ contenido: '', canal: 'web' }); }).catch(() => setCommentMessage('No se pudo guardar el comentario.')); }}>
-          <textarea placeholder="Nuevo comentario" value={newComment.contenido} onChange={(event) => setNewComment({ ...newComment, contenido: event.target.value })} rows={2} />
+        <form className="panel config-form attention-form" onSubmit={saveComment}>
+          <textarea placeholder="Comentario del cliente" value={newComment.contenido} onChange={(event) => setNewComment({ ...newComment, contenido: event.target.value })} rows={2} />
+          <select value={newComment.cliente_id} onChange={(event) => setNewComment({ ...newComment, cliente_id: event.target.value })}><option value="">Sin cliente</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.nombre}</option>)}</select>
           <select value={newComment.canal} onChange={(event) => setNewComment({ ...newComment, canal: event.target.value })}><option value="web">Web</option><option value="email">Email</option><option value="chat">Chat</option><option value="whatsapp">WhatsApp</option></select>
-          <button type="submit" className="mini-btn">Guardar comentario</button>{commentMessage && <span className="card-detail">{commentMessage}</span>}
+          <select value={newComment.estado} onChange={(event) => setNewComment({ ...newComment, estado: event.target.value })}><option value="pendiente">Pendiente</option><option value="en_proceso">En proceso</option><option value="resuelto">Resuelto</option><option value="cancelado">Cancelado</option></select>
+          <input type="number" min="0" step="0.01" placeholder="Tiempo (min)" value={newComment.tiempo_minutos} onChange={(event) => setNewComment({ ...newComment, tiempo_minutos: event.target.value })} />
+          <input placeholder="Operador" value={newComment.operador} onChange={(event) => setNewComment({ ...newComment, operador: event.target.value })} />
+          <button type="submit" className="mini-btn">Guardar atención</button>{commentMessage && <span className="card-detail">{commentMessage}</span>}
         </form>
         <CommentFilters {...filters} onSearchChange={(search) => setFilters((current) => ({ ...current, search }))} onSentimentChange={(sentiment) => setFilters((current) => ({ ...current, sentiment }))} onCategoryChange={(category) => setFilters((current) => ({ ...current, category }))} />
         <section className="panel table-panel">
@@ -90,6 +105,7 @@ export default function ComentariosPage({ activeView = 'comentarios', onSelectVi
                   <span>Estado: {comment.status}</span>
                   <span>Fecha: {comment.date ? new Date(comment.date).toLocaleString('es-ES') : 'Sin fecha'}</span>
                   <span>Prioridad: {comment.priority}</span>
+                  <select value={comment.status ?? 'pendiente'} onChange={(event) => void updateComment(comment.id, { estado: event.target.value }).then(reload)} aria-label={`Estado del comentario ${comment.id}`}><option value="pendiente">Pendiente</option><option value="en_proceso">En proceso</option><option value="resuelto">Resuelto</option><option value="cancelado">Cancelado</option></select>
                 </div>
               </article>
             ))}

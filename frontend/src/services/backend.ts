@@ -43,18 +43,23 @@ export function deleteClient(id: number) {
 }
 
 export async function fetchComments(): Promise<CommentRecord[]> {
-  const [comments, clients] = await Promise.all([request<ApiComment[]>('/comentarios/'), request<ApiClient[]>('/clientes/')]);
+  const [comments, clients, times] = await Promise.all([request<ApiComment[]>('/comentarios/'), request<ApiClient[]>('/clientes/'), fetchAttentionTimes()]);
   const clientNames = new Map(clients.map((client) => [client.id, client.nombre]));
+  const responseTimes = new Map(times.filter((item) => item.comentario_id).map((item) => [item.comentario_id, item.tiempo_minutos]));
   return comments.map((comment) => ({
     id: comment.id, client: comment.cliente_id ? clientNames.get(comment.cliente_id) ?? `Cliente #${comment.cliente_id}` : 'Sin cliente',
     sentiment: comment.categoria === 'RECLAMO' ? 'Negativo' : comment.categoria === 'FELICITACION' ? 'Positivo' : 'Neutral',
     category: categoryToUi(comment.categoria), text: comment.contenido, responseTime: 'Pendiente', rating: 0,
-    source: comment.canal, priority: comment.categoria === 'RECLAMO' ? 'Alta' : 'Media', status: comment.estado, date: comment.fecha,
+    source: comment.canal, priority: comment.categoria === 'RECLAMO' ? 'Alta' : 'Media', status: comment.estado, date: comment.fecha, responseTime: responseTimes.has(comment.id) ? `${responseTimes.get(comment.id)} min` : 'Sin registrar',
   }));
 }
 
-export function createComment(payload: { contenido: string; canal: string; cliente_id?: number }) {
+export function createComment(payload: { contenido: string; canal: string; cliente_id?: number; estado?: string }) {
   return request('/comentarios/', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function updateComment(id: number, payload: { estado?: string; canal?: string }) {
+  return request(`/comentarios/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
 }
 
 export function createAttentionTime(payload: { cliente_id?: number; comentario_id?: number; tiempo_minutos: number; operador?: string }) {
@@ -90,7 +95,7 @@ export interface DashboardSummary {
 }
 
 export async function fetchAttentionTimes() {
-  return request<Array<{ id: number; tiempo_minutos: number; fecha: string }>>('/tiempos-atencion/');
+  return request<Array<{ id: number; comentario_id?: number; cliente_id?: number; tiempo_minutos: number; fecha: string; operador?: string }>>('/tiempos-atencion/');
 }
 
 export async function fetchOptimizations() {

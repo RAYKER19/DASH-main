@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_current_user
 from app.database.connection import get_db
-from app.database.models import AnalisisNLPDB, ComentarioDB
-from app.schemas.comentarios import ComentarioCreate, ComentarioResponse
+from app.database.models import AnalisisNLPDB, AuditoriaDB, ComentarioDB
+from app.schemas.comentarios import ComentarioCreate, ComentarioResponse, ComentarioUpdate
 from app.services.nltk_service import NLTKService
 
 router = APIRouter(prefix="/comentarios", tags=["Comentarios"])
@@ -45,6 +45,24 @@ async def obtener_comentario(comentario_id: int, db: AsyncSession = Depends(get_
 	comentario = await db.get(ComentarioDB, comentario_id)
 	if comentario is None:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comentario no encontrado")
+	return comentario
+
+
+@router.put("/{comentario_id}", response_model=ComentarioResponse)
+async def actualizar_comentario(
+	comentario_id: int,
+	datos: ComentarioUpdate,
+	db: AsyncSession = Depends(get_db),
+	_: dict = Depends(get_current_user),
+):
+	comentario = await db.get(ComentarioDB, comentario_id)
+	if comentario is None:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comentario no encontrado")
+	for campo, valor in datos.model_dump(exclude_unset=True).items():
+		setattr(comentario, campo, valor)
+	db.add(AuditoriaDB(accion="EDITAR", tabla="comentarios", registro_id=comentario.id, detalles=datos.model_dump(exclude_unset=True)))
+	await db.commit()
+	await db.refresh(comentario)
 	return comentario
 
 

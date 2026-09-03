@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { comentarios } from '../services/api';
 import { fetchComments } from '../services/backend';
 import type { CommentRecord } from '../types';
 
@@ -10,7 +9,7 @@ export interface ComentarioFilters {
 }
 
 export function useComentarios() {
-  const [records, setRecords] = useState<CommentRecord[]>(comentarios);
+  const [records, setRecords] = useState<CommentRecord[]>([]);
   const [filters, setFilters] = useState<ComentarioFilters>({
     sentiment: 'all',
     category: 'all',
@@ -19,7 +18,7 @@ export function useComentarios() {
 
   useEffect(() => {
     let active = true;
-    fetchComments().then((data) => { if (active && data.length > 0) setRecords(data); }).catch(() => undefined);
+    fetchComments().then((data) => { if (active) setRecords(data); }).catch(() => { if (active) setRecords([]); });
     return () => { active = false; };
   }, []);
 

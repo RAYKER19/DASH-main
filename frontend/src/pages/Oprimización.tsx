@@ -1,5 +1,7 @@
 import { AppLayout } from '../layouts/AppLayout';
-import { optimizationScenarios } from '../services/api';
+import { fetchOptimizations } from '../services/backend';
+import { useEffect, useState } from 'react';
+import type { OptimizationScenario } from '../types';
 import type { ViewKey } from '../types';
 
 interface PageProps {
@@ -7,14 +9,9 @@ interface PageProps {
   onSelectView?: (view: ViewKey) => void;
 }
 
-const summaryCards = [
-  { label: 'Ahorro potencial', value: '12.4%', detail: 'por canal', tone: 'positive' },
-  { label: 'ROI medio', value: '2.1x', detail: 'acumulado', tone: 'neutral' },
-  { label: 'Casos priorizados', value: '48', detail: 'en análisis', tone: 'warning' },
-  { label: 'SLA mejorado', value: '9.2%', detail: 'reducido', tone: 'positive' },
-];
-
 export default function OptimizacionPage({ activeView = 'optimizacion', onSelectView = () => undefined }: PageProps) {
+	const [scenarios, setScenarios] = useState<OptimizationScenario[]>([]);
+	useEffect(() => { fetchOptimizations().then((items) => setScenarios(items.map((item) => ({ name: item.nombre, description: item.descripcion ?? '', impact: item.resultado?.ahorro_porcentual ? `Ahorro ${item.resultado.ahorro_porcentual}%` : 'Sin impacto calculado', roi: item.resultado?.roi ? `${item.resultado.roi}x` : 'N/D', status: item.estado === 'disponible' ? 'Disponible' : item.estado === 'en_prueba' ? 'En prueba' : 'Pendiente' })))).catch(() => setScenarios([])); }, []);
   return (
     <AppLayout activeView={activeView} onSelectView={onSelectView}>
       <header className="header-bar">
@@ -29,7 +26,10 @@ export default function OptimizacionPage({ activeView = 'optimizacion', onSelect
       </header>
 
       <div className="stats-grid">
-        {summaryCards.map((item) => (
+        {[
+          { label: 'Escenarios', value: scenarios.length, detail: 'registrados', tone: 'positive' },
+          { label: 'Disponibles', value: scenarios.filter((item) => item.status === 'Disponible').length, detail: 'para ejecutar', tone: 'neutral' },
+        ].map((item) => (
           <article key={item.label} className="stat-card optimization-card">
             <div className={`card-icon ${item.tone}`}>{item.label.charAt(0)}</div>
             <div className="card-text">
@@ -51,7 +51,7 @@ export default function OptimizacionPage({ activeView = 'optimizacion', onSelect
           </div>
 
           <div className="scenario-grid">
-            {optimizationScenarios.map((scenario) => (
+            {scenarios.map((scenario) => (
               <article key={scenario.name} className="scenario-card premium-scenario">
                 <div className="scenario-head">
                   <strong>{scenario.name}</strong>

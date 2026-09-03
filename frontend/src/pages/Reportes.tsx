@@ -1,5 +1,5 @@
 import { AppLayout } from '../layouts/AppLayout';
-import { reportRows, reportTools } from '../services/api';
+import { useDashboardData } from '../hooks/useDashboardData';
 import type { ViewKey } from '../types';
 
 interface PageProps {
@@ -8,6 +8,8 @@ interface PageProps {
 }
 
 export default function ReportesPage({ activeView = 'reportes', onSelectView = () => undefined }: PageProps) {
+  const { kpis, metrics } = useDashboardData();
+  const reportRows = kpis.map((item) => ({ name: item.label, value: item.value, change: item.trend || 'Actual' }));
   return (
     <AppLayout activeView={activeView} onSelectView={onSelectView}>
       <header className="header-bar">
@@ -22,10 +24,10 @@ export default function ReportesPage({ activeView = 'reportes', onSelectView = (
       </header>
 
       <div className="stats-grid">
-        {reportTools.map((tool) => (
-          <article key={tool.title} className={`tool-card tool-${tool.tone}`}>
-            <div className="tool-title">{tool.title}</div>
-            <p>{tool.description}</p>
+        {metrics.map((metric) => (
+          <article key={metric.label} className="tool-card tool-blue">
+            <div className="tool-title">{metric.label}</div>
+            <p>{metric.value}% de objetivo alcanzado</p>
           </article>
         ))}
       </div>

@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { clientes } from '../services/api';
 import { fetchClients } from '../services/backend';
 import type { ClientRecord } from '../types';
 
 export function useClientes() {
-  const [records, setRecords] = useState<ClientRecord[]>(clientes);
+  const [records, setRecords] = useState<ClientRecord[]>([]);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'all' | 'Activo' | 'Pendiente' | 'Atención'>('all');
 
   useEffect(() => {
     let active = true;
-    fetchClients().then((data) => { if (active && data.length > 0) setRecords(data); }).catch(() => undefined);
+    fetchClients().then((data) => { if (active) setRecords(data); }).catch(() => { if (active) setRecords([]); });
     return () => { active = false; };
   }, []);
 

@@ -1,11 +1,10 @@
-import { useMemo } from 'react';
-import { categoryMetrics, wordCloud } from '../services/api';
+import { useEffect, useState } from 'react';
+import { fetchDashboardSummary } from '../services/backend';
+import type { CategoryMetric, WordCloudItem } from '../types';
 
 export function useNlpAnalysis() {
-  return useMemo(() => ({
-    words: wordCloud,
-    categories: categoryMetrics,
-    dominant: [...wordCloud].sort((a, b) => b.size - a.size)[0],
-    totalTopics: categoryMetrics.reduce((sum, item) => sum + item.value, 0),
-  }), []);
+  const [words, setWords] = useState<WordCloudItem[]>([]);
+  const [categories, setCategories] = useState<CategoryMetric[]>([]);
+  useEffect(() => { fetchDashboardSummary().then((data) => { setWords(data.palabras); setCategories(data.categorias); }).catch(() => { setWords([]); setCategories([]); }); }, []);
+  return { words, categories, dominant: [...words].sort((a, b) => b.size - a.size)[0], totalTopics: categories.reduce((sum, item) => sum + item.value, 0) };
 }

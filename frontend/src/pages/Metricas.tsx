@@ -1,5 +1,5 @@
 import { AppLayout } from '../layouts/AppLayout';
-import { metricSnapshots } from '../services/api';
+import { useMetrics } from '../hooks/useMetrics';
 import type { ViewKey } from '../types';
 
 interface PageProps {
@@ -8,6 +8,7 @@ interface PageProps {
 }
 
 export default function MetricasPage({ activeView = 'metricas', onSelectView = () => undefined }: PageProps) {
+  const { snapshots } = useMetrics();
   return (
     <AppLayout activeView={activeView} onSelectView={onSelectView}>
       <header className="header-bar">
@@ -18,7 +19,7 @@ export default function MetricasPage({ activeView = 'metricas', onSelectView = (
       </header>
 
       <div className="stats-grid metric-grid">
-        {metricSnapshots.map((metric) => (
+        {snapshots.map((metric) => (
           <article key={metric.label} className="stat-card metric-card">
             <div className="card-label">{metric.label}</div>
             <div className="card-value">{metric.value}</div>

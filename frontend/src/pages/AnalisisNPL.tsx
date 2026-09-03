@@ -1,5 +1,6 @@
 import { AppLayout } from '../layouts/AppLayout';
-import { categoryMetrics, nlpInsights, wordCloud } from '../services/api';
+import { useNlpAnalysis } from '../hooks/useNlpAnalysis';
+import { useComentarios } from '../hooks/useComentarios';
 import type { ViewKey } from '../types';
 
 interface PageProps {
@@ -8,6 +9,8 @@ interface PageProps {
 }
 
 export default function AnalisisNLPPage({ activeView = 'analisisNLP', onSelectView = () => undefined }: PageProps) {
+  const { categories, words } = useNlpAnalysis();
+  const { comentarios } = useComentarios();
   return (
     <AppLayout activeView={activeView} onSelectView={onSelectView}>
       <header className="header-bar">
@@ -57,7 +60,7 @@ export default function AnalisisNLPPage({ activeView = 'analisisNLP', onSelectVi
           </div>
 
           <div className="word-cloud compact">
-            {wordCloud.map((item) => (
+            {words.map((item) => (
               <span
                 key={item.word}
                 style={{ fontSize: `${Math.min(0.9 + item.size * 0.32, 1.15)}rem` }}
@@ -74,7 +77,7 @@ export default function AnalisisNLPPage({ activeView = 'analisisNLP', onSelectVi
           </div>
 
           <div className="category-list">
-            {categoryMetrics.map((item) => (
+            {categories.map((item) => (
               <div key={item.name} className="category-row">
                 <div className="category-name-wrap">
                   <span className="category-dot" style={{ background: item.color }} />
@@ -93,18 +96,18 @@ export default function AnalisisNLPPage({ activeView = 'analisisNLP', onSelectVi
         </div>
 
         <div className="insight-grid">
-          {nlpInsights.map((item) => (
-            <article key={item.label} className="insight-card">
+          {categories.map((item) => (
+            <article key={item.name} className="insight-card">
               <div className="insight-head">
-                <strong>{item.label}</strong>
-                <span className={`sentiment-pill ${item.sentiment.toLowerCase()}`}>{item.sentiment}</span>
+                <strong>{item.name}</strong>
+                <span className="sentiment-pill neutral">Categoría</span>
               </div>
               <div className="insight-metric">
-                <span>{item.volume}</span>
-                <small>{item.trend}</small>
+                <span>{Math.round(item.value * comentarios.length / 100)}</span>
+                <small>{item.value}%</small>
               </div>
-              <div className="track small-track"><i style={{ width: `${item.confidence}%` }} /></div>
-              <small>Confianza: {item.confidence}%</small>
+              <div className="track small-track"><i style={{ width: `${item.value}%` }} /></div>
+              <small>Distribución: {item.value}%</small>
             </article>
           ))}
         </div>

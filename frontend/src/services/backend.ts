@@ -1,4 +1,4 @@
-import type { ActivityItem, CategoryMetric, ClientRecord, CommentRecord, MetricBar, WordCloudItem } from '../types';
+import type { ActivityItem, CategoryMetric, ClientRecord, CommentRecord, MetricBar, MetricSnapshot, WordCloudItem } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
 
@@ -58,6 +58,14 @@ export interface DashboardSummary {
   palabras: WordCloudItem[];
   actividad: ActivityItem[];
   metricas: MetricBar[];
+}
+
+export async function fetchAttentionTimes() {
+  return request<Array<{ id: number; tiempo_minutos: number; fecha: string }>>('/tiempos-atencion/');
+}
+
+export async function fetchOptimizations() {
+  return request<Array<{ id: number; nombre: string; descripcion?: string; estado: string; resultado?: { ahorro_porcentual?: number; roi?: number } }>>('/optimizaciones/');
 }
 
 export function fetchDashboardSummary() {

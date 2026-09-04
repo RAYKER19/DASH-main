@@ -17,3 +17,15 @@ La API usa directamente PostgreSQL de Supabase mediante SQLAlchemy y `asyncpg`.
 `GET /health` comprueba la conexión ejecutando `SELECT 1`.
 También informa las tablas requeridas y `schema_ready`; el arranque no ejecuta
 `CREATE TABLE` ni modifica el esquema existente de Supabase.
+
+## Producción con Docker
+
+Completa `backend/.env` con las credenciales reales de Supabase y ejecuta:
+
+```bash
+docker compose up --build
+```
+
+La API quedará disponible en `http://localhost:8000` y el frontend en
+`http://localhost:5173`. La documentación interactiva de FastAPI está en
+`http://localhost:8000/docs`.

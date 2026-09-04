@@ -10,10 +10,10 @@ interface PageProps {
 
 export default function ConfiguracionPage({ activeView = 'configuracion', onSelectView = () => undefined }: PageProps) {
   const [users, setUsers] = useState<Array<{ id: number; nombre: string; rol: string; activo: boolean }>>([]);
-  const [categories, setCategories] = useState<Array<{ id: number; nombre: string; activo: boolean }>>([]);
+  const [categories, setCategories] = useState<Array<{ id: number; nombre: string; descripcion?: string | null; activo: boolean }>>([]);
   const [audit, setAudit] = useState<Array<{ id: number; accion: string; tabla?: string; created_at: string }>>([]);
-  const [newCategory, setNewCategory] = useState('');
-  const [newUser, setNewUser] = useState({ nombre: '', email: '', password_hash: '', rol: 'USUARIO' });
+  const [newCategory, setNewCategory] = useState({ nombre: '', descripcion: '' });
+  const [newUser, setNewUser] = useState({ nombre: '', email: '', password_hash: '', rol: 'USUARIO', activo: true });
   const load = () => Promise.all([fetchUsers(), fetchCategories(), fetchAudit()]).then(([loadedUsers, loadedCategories, loadedAudit]) => { setUsers(loadedUsers); setCategories(loadedCategories); setAudit(loadedAudit); }).catch(() => { setUsers([]); setCategories([]); setAudit([]); });
   useEffect(() => {
     void load();
@@ -34,14 +34,15 @@ export default function ConfiguracionPage({ activeView = 'configuracion', onSele
             <h3>USUARIOS</h3>
             <button type="button" className="mini-btn" onClick={() => void load()}>Actualizar</button>
           </div>
-          <form className="config-form" onSubmit={(event) => { event.preventDefault(); if (!newUser.nombre || !newUser.email || !newUser.password_hash) return; void createUser(newUser).then(() => { setNewUser({ nombre: '', email: '', password_hash: '', rol: 'USUARIO' }); return load(); }); }}>
-            <input placeholder="Nombre" value={newUser.nombre} onChange={(event) => setNewUser({ ...newUser, nombre: event.target.value })} />
-            <input type="email" placeholder="Email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} />
-            <input type="password" placeholder="Contraseña" value={newUser.password_hash} onChange={(event) => setNewUser({ ...newUser, password_hash: event.target.value })} />
+          <form className="config-form" onSubmit={(event) => { event.preventDefault(); if (!newUser.nombre.trim() || !newUser.email.trim() || !newUser.password_hash.trim()) return; void createUser({ nombre: newUser.nombre.trim(), email: newUser.email.trim(), password_hash: newUser.password_hash, rol: newUser.rol, activo: newUser.activo }).then(() => { setNewUser({ nombre: '', email: '', password_hash: '', rol: 'USUARIO', activo: true }); return load(); }); }}>
+            <input required placeholder="Nombre" value={newUser.nombre} onChange={(event) => setNewUser({ ...newUser, nombre: event.target.value })} />
+            <input required type="email" placeholder="Email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} />
+            <input required type="password" placeholder="Contraseña" value={newUser.password_hash} onChange={(event) => setNewUser({ ...newUser, password_hash: event.target.value })} />
             <select value={newUser.rol} onChange={(event) => setNewUser({ ...newUser, rol: event.target.value })}><option>ADMIN</option><option>ANALISTA</option><option>SUPERVISOR</option><option>USUARIO</option></select>
+            <label className="checkbox-row"><input type="checkbox" checked={newUser.activo} onChange={(event) => setNewUser({ ...newUser, activo: event.target.checked })} /> Activo</label>
             <button type="submit" className="mini-btn">Agregar usuario</button>
           </form>
-          <div className="category-list">{users.map((user) => <div key={user.id} className="category-row"><span>{user.nombre} · {user.rol}</span><button type="button" className="mini-btn" onClick={() => void updateUser(user.id, { activo: !user.activo }).then(load)}>{user.activo ? 'Desactivar' : 'Activar'}</button></div>)}</div>
+          <div className="category-list">{users.map((user) => <div key={user.id} className="category-row"><span>{user.nombre} · {user.rol} · {user.activo ? 'Activo' : 'Inactivo'}</span><button type="button" className="mini-btn" onClick={() => void updateUser(user.id, { activo: !user.activo }).then(load)}>{user.activo ? 'Desactivar' : 'Activar'}</button></div>)}</div>
 
           <div className="summary-cards">
             <div className="summary-card">
@@ -63,11 +64,15 @@ export default function ConfiguracionPage({ activeView = 'configuracion', onSele
           <div className="panel-header">
             <h3>CATEGORÍAS</h3>
           </div>
-          <form className="config-form" onSubmit={(event) => { event.preventDefault(); if (!newCategory.trim()) return; void createCategory({ nombre: newCategory.trim() }).then(() => { setNewCategory(''); return load(); }); }}><input placeholder="Nueva categoría" value={newCategory} onChange={(event) => setNewCategory(event.target.value)} /><button type="submit" className="mini-btn">Agregar categoría</button></form>
+          <form className="config-form" onSubmit={(event) => { event.preventDefault(); if (!newCategory.nombre.trim()) return; void createCategory({ nombre: newCategory.nombre.trim(), descripcion: newCategory.descripcion.trim() || undefined }).then(() => { setNewCategory({ nombre: '', descripcion: '' }); return load(); }); }}>
+            <input required placeholder="Nueva categoría" value={newCategory.nombre} onChange={(event) => setNewCategory({ ...newCategory, nombre: event.target.value })} />
+            <input placeholder="Descripción" value={newCategory.descripcion} onChange={(event) => setNewCategory({ ...newCategory, descripcion: event.target.value })} />
+            <button type="submit" className="mini-btn">Agregar categoría</button>
+          </form>
           <div className="category-list">
             {categories.map((category) => (
-              <div key={category.nombre} className="category-row">
-                <span>{category.nombre}</span>
+              <div key={category.id} className="category-row">
+                <span>{category.nombre}{category.descripcion ? ` · ${category.descripcion}` : ''}{` · ${category.activo ? 'Activo' : 'Inactivo'}`}</span>
                 <button type="button" className="mini-btn" onClick={() => void updateCategory(category.id, { activo: !category.activo }).then(load)}>{category.activo ? 'Desactivar' : 'Activar'}</button>
               </div>
             ))}

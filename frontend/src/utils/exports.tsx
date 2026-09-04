@@ -15,12 +15,12 @@ export function exportRows(rows: string[][], format: ExportFormat, filename: str
     return;
   }
   if (format === 'csv') {
-    const csv = rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(',')).join('\n');
+    const csv = rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\n');
     download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `${filename}.csv`);
     return;
   }
   if (format === 'excel') {
-    const table = `<table>${rows.map((row) => `<tr>${row.map((value) => `<td>${value.replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</td>`).join('')}</tr>`).join('')}</table>`;
+    const table = `<table>${rows.map((row) => `<tr>${row.map((value) => `<td>${String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</td>`).join('')}</tr>`).join('')}</table>`;
     download(new Blob([`<html><meta charset="utf-8"><body>${table}</body></html>`], { type: 'application/vnd.ms-excel' }), `${filename}.xls`);
     return;
   }

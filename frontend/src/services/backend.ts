@@ -11,7 +11,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-type ApiClient = { id: number; nombre: string; email?: string; empresa?: string; activo: boolean };
+type ApiClient = { id: number; nombre: string; email?: string; telefono?: string; empresa?: string; activo: boolean };
 type ApiComment = { id: number; cliente_id?: number; contenido: string; canal: string; categoria?: string; procesado: boolean; estado: string; fecha: string };
 
 const categoryToUi = (category?: string): CommentRecord['category'] => {
@@ -24,9 +24,18 @@ const categoryToUi = (category?: string): CommentRecord['category'] => {
 export async function fetchClients(): Promise<ClientRecord[]> {
   const clients = await request<ApiClient[]>('/clientes/');
   return clients.map((client) => ({
-    id: client.id, name: client.nombre, company: client.empresa ?? 'Sin empresa', email: client.email ?? '',
-    status: client.activo ? 'Activo' : 'Pendiente', satisfaction: 0, segment: 'General', owner: 'Sin asignar',
-    lastInteraction: 'Sin actividad', risk: 'Bajo', tenure: 'Nuevo',
+    id: client.id,
+    name: client.nombre,
+    company: client.empresa ?? 'Sin empresa',
+    email: client.email ?? '',
+    telefono: client.telefono ?? '',
+    status: client.activo ? 'Activo' : 'Pendiente',
+    satisfaction: 0,
+    segment: 'General',
+    owner: 'Sin asignar',
+    lastInteraction: 'Sin actividad',
+    risk: 'Bajo',
+    tenure: 'Nuevo',
   }));
 }
 
@@ -47,15 +56,22 @@ export async function fetchComments(): Promise<CommentRecord[]> {
   const clientNames = new Map(clients.map((client) => [client.id, client.nombre]));
   const responseTimes = new Map(times.filter((item) => item.comentario_id).map((item) => [item.comentario_id, item.tiempo_minutos]));
   return comments.map((comment) => ({
-    id: comment.id, client: comment.cliente_id ? clientNames.get(comment.cliente_id) ?? `Cliente #${comment.cliente_id}` : 'Sin cliente',
+    id: comment.id,
+    client: comment.cliente_id ? clientNames.get(comment.cliente_id) ?? `Cliente #${comment.cliente_id}` : 'Sin cliente',
     sentiment: comment.categoria === 'RECLAMO' ? 'Negativo' : comment.categoria === 'FELICITACION' ? 'Positivo' : 'Neutral',
-    category: categoryToUi(comment.categoria), text: comment.contenido, responseTime: 'Pendiente', rating: 0,
-    source: comment.canal, priority: comment.categoria === 'RECLAMO' ? 'Alta' : 'Media', status: comment.estado, date: comment.fecha, responseTime: responseTimes.has(comment.id) ? `${responseTimes.get(comment.id)} min` : 'Sin registrar',
+    category: categoryToUi(comment.categoria),
+    text: comment.contenido,
+    rating: 0,
+    source: comment.canal,
+    priority: comment.categoria === 'RECLAMO' ? 'Alta' : 'Media',
+    status: comment.estado,
+    date: comment.fecha,
+    responseTime: responseTimes.has(comment.id) ? `${responseTimes.get(comment.id)} min` : 'Sin registrar',
   }));
 }
 
-export function createComment(payload: { contenido: string; canal: string; cliente_id?: number; estado?: string }) {
-  return request('/comentarios/', { method: 'POST', body: JSON.stringify(payload) });
+export function createComment(payload: { contenido: string; canal: string; cliente_id?: number; estado?: string }): Promise<{ id: number }> {
+  return request<{ id: number }>('/comentarios/', { method: 'POST', body: JSON.stringify(payload) });
 }
 
 export function updateComment(id: number, payload: { estado?: string; canal?: string }) {
@@ -72,6 +88,10 @@ export function analyzeText(texto: string) {
 
 export function calculateStatistics(valores: number[]) {
   return request('/scipy/estadisticas', { method: 'POST', body: JSON.stringify({ valores }) });
+}
+
+export function fetchAttentionMetrics() {
+  return request<{ cantidad: number; media: number; mediana: number; desviacion_estandar: number; minimo: number; maximo: number; percentil_25: number; percentil_75: number }>('/metricas-atencion/');
 }
 
 export function interpolate(x_puntos: number[], y_puntos: number[], x_nuevo: number[]) {
@@ -111,7 +131,7 @@ export async function fetchCategories() {
   return request<Array<{ id: number; nombre: string; activo: boolean }>>('/categorias/');
 }
 
-export function createUser(payload: { nombre: string; email: string; password_hash: string; rol: string }) {
+export function createUser(payload: { nombre: string; email: string; password_hash: string; rol: string; activo?: boolean }) {
   return request('/usuarios/', { method: 'POST', body: JSON.stringify(payload) });
 }
 

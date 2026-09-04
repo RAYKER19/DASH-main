@@ -6,6 +6,8 @@ export interface ComentarioFilters {
   sentiment: 'all' | CommentRecord['sentiment'];
   category: 'all' | CommentRecord['category'];
   search: string;
+  dateFrom: string;
+  dateTo: string;
 }
 
 export function useComentarios() {
@@ -14,6 +16,8 @@ export function useComentarios() {
     sentiment: 'all',
     category: 'all',
     search: '',
+    dateFrom: '',
+    dateTo: '',
   });
 
   const reload = () => {
@@ -26,8 +30,11 @@ export function useComentarios() {
 
   const filteredComentarios = useMemo(() => {
     const term = filters.search.trim().toLowerCase();
+    const dateFrom = filters.dateFrom ? new Date(`${filters.dateFrom}T00:00:00`).getTime() : null;
+    const dateTo = filters.dateTo ? new Date(`${filters.dateTo}T23:59:59`).getTime() : null;
 
     return records.filter((comment) => {
+      const commentDate = comment.date ? new Date(comment.date).getTime() : null;
       const matchesSentiment =
         filters.sentiment === 'all' || comment.sentiment === filters.sentiment;
       const matchesCategory =
@@ -37,8 +44,10 @@ export function useComentarios() {
         comment.client.toLowerCase().includes(term) ||
         comment.text.toLowerCase().includes(term) ||
         comment.category.toLowerCase().includes(term);
+      const matchesDateFrom = !dateFrom || (commentDate !== null && commentDate >= dateFrom);
+      const matchesDateTo = !dateTo || (commentDate !== null && commentDate <= dateTo);
 
-      return matchesSentiment && matchesCategory && matchesSearch;
+      return matchesSentiment && matchesCategory && matchesSearch && matchesDateFrom && matchesDateTo;
     });
   }, [filters, records]);
 

@@ -1,14 +1,21 @@
 import re
 from collections import Counter
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 
-STOPWORDS = {"el", "la", "los", "las", "un", "una", "de", "que", "y", "en", "por", "para", "con", "del", "se"}
+FALLBACK_STOPWORDS = {"el", "la", "los", "las", "un", "una", "de", "que", "y", "en", "por", "para", "con", "del", "se"}
 
 
 class NLTKService:
 	@staticmethod
 	def tokens(texto: str) -> list[str]:
-		return [token for token in re.findall(r"[\wáéíóúüñ]+", texto.lower()) if token not in STOPWORDS]
+		try:
+			stop_words = set(stopwords.words("spanish"))
+		except LookupError:
+			stop_words = FALLBACK_STOPWORDS
+		tokens = word_tokenize(texto.lower(), preserve_line=True)
+		return [token for token in tokens if re.fullmatch(r"[\wáéíóúüñ]+", token) and token not in stop_words]
 
 	@classmethod
 	def procesar_texto(cls, texto: str) -> dict:

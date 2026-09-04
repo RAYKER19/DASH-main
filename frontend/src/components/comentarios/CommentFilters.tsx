@@ -4,9 +4,13 @@ interface CommentFiltersProps {
   search: string;
   sentiment: 'all' | CommentRecord['sentiment'];
   category: 'all' | CommentRecord['category'];
+  dateFrom: string;
+  dateTo: string;
   onSearchChange: (value: string) => void;
   onSentimentChange: (value: 'all' | CommentRecord['sentiment']) => void;
   onCategoryChange: (value: 'all' | CommentRecord['category']) => void;
+  onDateFromChange: (value: string) => void;
+  onDateToChange: (value: string) => void;
 }
 
 const sentimentOptions: Array<'all' | CommentRecord['sentiment']> = ['all', 'Positivo', 'Neutral', 'Negativo'];
@@ -16,9 +20,13 @@ export function CommentFilters({
   search,
   sentiment,
   category,
+  dateFrom,
+  dateTo,
   onSearchChange,
   onSentimentChange,
   onCategoryChange,
+  onDateFromChange,
+  onDateToChange,
 }: CommentFiltersProps) {
   return (
     <div className="panel">
@@ -33,6 +41,20 @@ export function CommentFilters({
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Buscar cliente o comentario"
           className="search-input-wrap"
+        />
+
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(event) => onDateFromChange(event.target.value)}
+          aria-label="Fecha de inicio"
+        />
+
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(event) => onDateToChange(event.target.value)}
+          aria-label="Fecha de fin"
         />
 
         <select value={sentiment} onChange={(event) => onSentimentChange(event.target.value as 'all' | CommentRecord['sentiment'])}>

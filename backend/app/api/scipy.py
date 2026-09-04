@@ -14,12 +14,13 @@ from app.schemas.scipy_schemas import (
 from app.services.scipy_service import SciPyService
 from app.database.connection import get_db
 from app.database.models import MetricasEstadisticaDB, OptimizacionDB, TiempoAtencionDB
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/scipy", tags=["SciPy Computación Científica"])
 
 
 @router.post("/estadisticas", response_model=EstadisticasResponse)
-async def procesar_estadisticas(payload: EstadisticasRequest, db: AsyncSession = Depends(get_db)):
+async def procesar_estadisticas(payload: EstadisticasRequest, db: AsyncSession = Depends(get_db), _: dict = Depends(get_current_user)):
 	resultado = SciPyService.calcular_estadisticas(payload.valores)
 	db.add(MetricasEstadisticaDB(
 		fecha_inicio=date.today(), fecha_fin=date.today(), cantidad_registros=resultado["cantidad"],
@@ -31,7 +32,7 @@ async def procesar_estadisticas(payload: EstadisticasRequest, db: AsyncSession =
 
 
 @router.get("/estadisticas", response_model=EstadisticasResponse)
-async def obtener_estadisticas(db: AsyncSession = Depends(get_db)):
+async def obtener_estadisticas(db: AsyncSession = Depends(get_db), _: dict = Depends(get_current_user)):
 	valores = [float(item) for item in (await db.scalars(select(TiempoAtencionDB.tiempo_minutos))).all()]
 	if not valores:
 		raise HTTPException(status_code=404, detail="No existen tiempos de atención para calcular estadísticas")
@@ -39,7 +40,7 @@ async def obtener_estadisticas(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/optimizacion")
-async def optimizar(payload: OptimizacionRequest, db: AsyncSession = Depends(get_db)):
+async def optimizar(payload: OptimizacionRequest, db: AsyncSession = Depends(get_db), _: dict = Depends(get_current_user)):
 	resultado = SciPyService.optimizar_costos(payload.recursos)
 	nuevo = OptimizacionDB(nombre=payload.nombre, parametros_entrada=payload.recursos, resultado=resultado, costo_optimizado=resultado["costo"], estado="disponible")
 	db.add(nuevo)
@@ -49,7 +50,7 @@ async def optimizar(payload: OptimizacionRequest, db: AsyncSession = Depends(get
 
 
 @router.post("/interpolacion", response_model=InterpolacionResponse)
-async def interpolar(payload: InterpolacionRequest):
+async def interpolar(payload: InterpolacionRequest, _: dict = Depends(get_current_user)):
 	if len(payload.x_puntos) != len(payload.y_puntos) or len(payload.x_puntos) < 2:
 		raise HTTPException(status_code=400, detail="Las listas x e y deben tener la misma longitud (mínimo 2)")
 	return {"x_nuevo": payload.x_nuevo, "y_interpolado": SciPyService.interpolar_datos(payload.x_puntos, payload.y_puntos, payload.x_nuevo)}

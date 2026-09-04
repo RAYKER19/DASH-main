@@ -46,6 +46,7 @@ export interface ClientRecord {
   name: string;
   company: string;
   email: string;
+  telefono: string;
   status: 'Activo' | 'Pendiente' | 'Atención';
   satisfaction: number;
   segment: string;

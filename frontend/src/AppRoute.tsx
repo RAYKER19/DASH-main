@@ -1,4 +1,4 @@
-import { renderPage } from './routes';
+import { renderPage } from './routes/index';
 import type { ViewKey } from './types';
 
 interface AppRouteProps {

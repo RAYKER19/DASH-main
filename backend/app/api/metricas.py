@@ -6,8 +6,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.connection import get_db
 from app.database.models import AnalisisNLPDB, CategoriaDB, ClienteDB, ComentarioDB, OptimizacionDB, TiempoAtencionDB, UsuarioDB, AuditoriaDB
+from app.core.security import get_current_user
+from app.services.scipy_service import SciPyService
 
 router = APIRouter(prefix="/metricas", tags=["Métricas Dashboard"])
+router_atencion = APIRouter(prefix="/metricas-atencion", tags=["Métricas de Atención"])
+
+
+@router_atencion.get("/")
+async def metricas_atencion(
+	db: AsyncSession = Depends(get_db),
+	_: dict = Depends(get_current_user),
+):
+	valores = [float(value) for value in (await db.scalars(select(TiempoAtencionDB.tiempo_minutos))).all()]
+	if not valores:
+		return {
+			"cantidad": 0,
+			"media": 0,
+			"mediana": 0,
+			"desviacion_estandar": 0,
+			"minimo": 0,
+			"maximo": 0,
+			"percentil_25": 0,
+			"percentil_75": 0,
+		}
+	return SciPyService.calcular_estadisticas(valores)
 
 
 @router.get("/resumen")

@@ -9,7 +9,7 @@ from app.api.atencion import router as router_atencion
 from app.api.categorias import router as router_categorias
 from app.api.clientes import router as router_clientes
 from app.api.comentarios import router as router_comentarios
-from app.api.metricas import router as router_metricas
+from app.api.metricas import router as router_metricas, router_atencion as router_metricas_atencion
 from app.api.nltk import router as router_nltk
 from app.api.optimizaciones import router as router_optimizaciones
 from app.api.scipy import router as router_scipy
@@ -39,6 +39,7 @@ app.include_router(router_clientes, prefix=settings.API_V1_STR)
 app.include_router(router_comentarios, prefix=settings.API_V1_STR)
 app.include_router(router_atencion, prefix=settings.API_V1_STR)
 app.include_router(router_metricas, prefix=settings.API_V1_STR)
+app.include_router(router_metricas_atencion, prefix=settings.API_V1_STR)
 app.include_router(router_nltk, prefix=settings.API_V1_STR)
 app.include_router(router_scipy, prefix=settings.API_V1_STR)
 app.include_router(router_usuarios, prefix=settings.API_V1_STR)

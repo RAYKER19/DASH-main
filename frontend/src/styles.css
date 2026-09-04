@@ -272,6 +272,81 @@ select, .config-form input, .config-form select {
   font: inherit;
 }
 
+.filter-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.6fr) repeat(2, minmax(140px, 1fr)) repeat(2, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: center;
+}
+
+.filter-row input,
+.filter-row select {
+  width: 100%;
+}
+
+.attention-form {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbfa 100%);
+  border: 1px solid #dfeae4;
+  box-shadow: 0 12px 30px rgba(8, 24, 17, 0.06);
+}
+
+.attention-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.field-group label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.field-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.attention-form textarea,
+.attention-form input,
+.attention-form select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--black);
+  padding: 10px 12px;
+}
+
+.attention-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.attention-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.mini-btn.primary {
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
+  border-color: var(--green-dark);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(20, 122, 82, 0.18);
+}
+
 .section-tabs {
   display: flex;
   gap: 8px;
@@ -629,10 +704,11 @@ select, .config-form input, .config-form select {
 .comment-list, .scenario-grid, .report-list { display: grid; gap: 14px; }
 
 .comment-card, .scenario-card {
-  background: #f9fbfa;
+  background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 14px 16px;
+  box-shadow: 0 8px 22px rgba(8, 24, 17, 0.04);
 }
 
 .comment-header, .scenario-head, .report-row {
@@ -656,6 +732,14 @@ select, .config-form input, .config-form select {
 }
 
 .comment-meta { color: var(--muted); font-size: 0.8rem; display: flex; flex-wrap: wrap; gap: 10px 18px; }
+
+.comment-meta select {
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: #ffffff;
+}
 
 .comment-actions {
   display: flex;
